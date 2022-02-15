@@ -11,7 +11,7 @@ use purr::feature::VirtualHydrogen;
 use purr::walk::Follower;
 
 /// An error marker for sequences containing invalid amino acids.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct UnknownResidue;
 
 impl std::fmt::Display for UnknownResidue {
@@ -23,7 +23,7 @@ impl std::fmt::Display for UnknownResidue {
 impl std::error::Error for UnknownResidue {}
 
 /// A L-α amino-acid.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AminoAcid {
     /// [L-arginine](https://en.wikipedia.org/wiki/Arginine).
     ///
@@ -532,5 +532,17 @@ mod tests {
     fn empty() {
         let s = smiles([]);
         assert_eq!(s, "");
+    }
+
+    #[test]
+    fn from_code1() {
+        assert_eq!(AminoAcid::from_code1('Y'), Ok(AminoAcid::Tyr));
+        assert_eq!(AminoAcid::from_code1('α'), Err(UnknownResidue));
+    }
+
+    #[test]
+    fn from_code3() {
+        assert_eq!(AminoAcid::from_code3("Thr"), Ok(AminoAcid::Thr));
+        assert_eq!(AminoAcid::from_code3("Xyz"), Err(UnknownResidue));
     }
 }
