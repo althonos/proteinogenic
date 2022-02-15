@@ -10,6 +10,18 @@ use purr::feature::Element;
 use purr::feature::VirtualHydrogen;
 use purr::walk::Follower;
 
+/// An error marker for sequences containing invalid amino acids.
+#[derive(Clone, Copy, Debug)]
+pub struct UnknownResidue;
+
+impl std::fmt::Display for UnknownResidue {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        write!(f, "unknown residue found in sequence")
+    }
+}
+
+impl std::error::Error for UnknownResidue {}
+
 /// A L-α amino-acid.
 #[derive(Clone, Copy, Debug)]
 pub enum AminoAcid {
@@ -414,12 +426,68 @@ impl AminoAcid {
         // beta carbon
         follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
     }
+
+    /// Create an `AminoAcid` variant from a 1-letter code.
+    pub fn from_code1(code: char) -> Result<AminoAcid, UnknownResidue> {
+        match code {
+            'R' => Ok(AminoAcid::Arg),
+            'H' => Ok(AminoAcid::His),
+            'K' => Ok(AminoAcid::Lys),
+            'D' => Ok(AminoAcid::Asp),
+            'E' => Ok(AminoAcid::Glu),
+            'S' => Ok(AminoAcid::Ser),
+            'T' => Ok(AminoAcid::Thr),
+            'N' => Ok(AminoAcid::Asn),
+            'Q' => Ok(AminoAcid::Gln),
+            'G' => Ok(AminoAcid::Gly),
+            'P' => Ok(AminoAcid::Pro),
+            'C' => Ok(AminoAcid::Cys),
+            'U' => Ok(AminoAcid::Sec),
+            'A' => Ok(AminoAcid::Ala),
+            'V' => Ok(AminoAcid::Val),
+            'I' => Ok(AminoAcid::Ile),
+            'L' => Ok(AminoAcid::Leu),
+            'M' => Ok(AminoAcid::Met),
+            'F' => Ok(AminoAcid::Phe),
+            'Y' => Ok(AminoAcid::Tyr),
+            'W' => Ok(AminoAcid::Trp),
+            _ => Err(UnknownResidue),
+        }
+    }
+
+    /// Create an `AminoAcid` variant from a 3-letter code.
+    pub fn from_code3(code: &str) -> Result<AminoAcid, UnknownResidue> {
+        match code {
+            "Arg" => Ok(AminoAcid::Arg),
+            "His" => Ok(AminoAcid::His),
+            "Lys" => Ok(AminoAcid::Lys),
+            "Asp" => Ok(AminoAcid::Asp),
+            "Glu" => Ok(AminoAcid::Glu),
+            "Ser" => Ok(AminoAcid::Ser),
+            "Thr" => Ok(AminoAcid::Thr),
+            "Asn" => Ok(AminoAcid::Asn),
+            "Gln" => Ok(AminoAcid::Gln),
+            "Gly" => Ok(AminoAcid::Gly),
+            "Pro" => Ok(AminoAcid::Pro),
+            "Cys" => Ok(AminoAcid::Cys),
+            "Sec" => Ok(AminoAcid::Sec),
+            "Ala" => Ok(AminoAcid::Ala),
+            "Val" => Ok(AminoAcid::Val),
+            "Ile" => Ok(AminoAcid::Ile),
+            "Leu" => Ok(AminoAcid::Leu),
+            "Met" => Ok(AminoAcid::Met),
+            "Phe" => Ok(AminoAcid::Phe),
+            "Tyr" => Ok(AminoAcid::Tyr),
+            "Trp" => Ok(AminoAcid::Trp),
+            _ => Err(UnknownResidue),
+        }
+    }
 }
 
 /// Perform a walk on the atoms and bonds of the protein.
 pub fn visit<'aa, S, F>(sequence: S, follower: &mut F)
 where
-    S: IntoIterator<Item = &'aa AminoAcid>,
+    S: IntoIterator<Item = AminoAcid>,
     F: Follower,
 {
     // visit every amino acid one by one
@@ -448,7 +516,7 @@ where
 /// Create a SMILES string for the given amino-acid sequence.
 pub fn smiles<'aa, S>(sequence: S) -> String
 where
-    S: IntoIterator<Item = &'aa AminoAcid>,
+    S: IntoIterator<Item = AminoAcid>,
 {
     let mut writer = purr::write::Writer::new();
     visit(sequence, &mut writer);
