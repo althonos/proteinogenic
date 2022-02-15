@@ -344,7 +344,7 @@ pub fn smiles<'aa, S: IntoIterator<Item = &'aa AminoAcid>>(sequence: S) -> Strin
         writer.root(AtomKind::Aliphatic(Aliphatic::N));
         aa.visit(&mut writer);
         // add the carboxy group to the β carbon.
-        writer.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::O));
+        writer.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
         writer.pop(1);
         // keep visiting following amino acids.
         while let Some(aa) = aa_iter.next() {
@@ -352,11 +352,11 @@ pub fn smiles<'aa, S: IntoIterator<Item = &'aa AminoAcid>>(sequence: S) -> Strin
             writer.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::N));
             aa.visit(&mut writer);
             // add the carboxy group to the β carbon.
-            writer.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::O));
+            writer.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
             writer.pop(1);
         }
         // final amino acid: create the O atom of the carboxylic acid.
-        writer.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
+        writer.extend(BondKind::Single, AtomKind::Aliphatic(Aliphatic::O));
     }
     // generate final string
     writer.write()
