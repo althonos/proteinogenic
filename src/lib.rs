@@ -530,7 +530,7 @@ mod tests {
 
     #[test]
     fn empty() {
-        let s = smiles(&[]);
+        let s = smiles([]);
         assert_eq!(s, "");
     }
 }

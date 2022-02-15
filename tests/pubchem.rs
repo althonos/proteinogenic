@@ -8,12 +8,10 @@ macro_rules! test_peptide {
     ($name:ident, $cid:expr, $($variant:ident),*) => {
         #[test]
         pub fn $name() {
-            let s = proteinogenic::smiles(&[$(proteinogenic::AminoAcid::$variant),*]);
-
-            println!("{}", s);
+            let s = proteinogenic::smiles([$(proteinogenic::AminoAcid::$variant),*]);
             let compound = pubchem::Compound::with_smiles(&s);
             let cid = compound.cids().expect("PubChem retrieval failed");
-            assert_eq!(cid[0], $cid);
+            assert_eq!(cid[0], $cid, "failed to retrieve compound using smiles {:?}", s);
         }
     };
 }
