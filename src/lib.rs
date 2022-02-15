@@ -277,7 +277,7 @@ impl AminoAcid {
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
                 follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
                 follower.pop(1);
-                follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::N));
+                follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::O));
                 follower.pop(3);
             }
 
