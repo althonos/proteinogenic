@@ -11,7 +11,7 @@ use purr::feature::VirtualHydrogen;
 use purr::walk::Follower;
 
 /// A L-α amino-acid.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum AminoAcid {
     Arg,
     His,
@@ -333,32 +333,42 @@ impl AminoAcid {
     }
 }
 
-/// Create a SMILES string for the given amino-acid sequence.
-pub fn smiles<'aa, S: IntoIterator<Item = &'aa AminoAcid>>(sequence: S) -> String {
-    // create a `Writer` to generate the SMILES string.
-    let mut writer = purr::write::Writer::new();
+/// Perform a walk on the atoms and bonds of the protein.
+pub fn visit<'aa, S, F>(sequence: S, follower: &mut F)
+where
+    S: IntoIterator<Item = &'aa AminoAcid>,
+    F: Follower,
+{
     // visit every amino acid one by one
     let mut aa_iter = sequence.into_iter();
     if let Some(aa) = aa_iter.next() {
         // first amino acid: create a the N of the primary amine and visit residue.
-        writer.root(AtomKind::Aliphatic(Aliphatic::N));
-        aa.visit(&mut writer);
+        follower.root(AtomKind::Aliphatic(Aliphatic::N));
+        aa.visit(follower);
         // add the carboxy group to the β carbon.
-        writer.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
-        writer.pop(1);
+        follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
+        follower.pop(1);
         // keep visiting following amino acids.
         while let Some(aa) = aa_iter.next() {
             // next amino acid: create the N atom of the carboxamide and visit residue.
-            writer.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::N));
-            aa.visit(&mut writer);
+            follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::N));
+            aa.visit(follower);
             // add the carboxy group to the β carbon.
-            writer.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
-            writer.pop(1);
+            follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
+            follower.pop(1);
         }
         // final amino acid: create the O atom of the carboxylic acid.
-        writer.extend(BondKind::Single, AtomKind::Aliphatic(Aliphatic::O));
+        follower.extend(BondKind::Single, AtomKind::Aliphatic(Aliphatic::O));
     }
-    // generate final string
+}
+
+/// Create a SMILES string for the given amino-acid sequence.
+pub fn smiles<'aa, S>(sequence: S) -> String
+where
+    S: IntoIterator<Item = &'aa AminoAcid>,
+{
+    let mut writer = purr::write::Writer::new();
+    visit(sequence, &mut writer);
     writer.write()
 }
 
