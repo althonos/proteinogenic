@@ -13,26 +13,109 @@ use purr::walk::Follower;
 /// A L-α amino-acid.
 #[derive(Clone, Copy, Debug)]
 pub enum AminoAcid {
+    /// [L-arginine](https://en.wikipedia.org/wiki/Arginine).
+    ///
+    /// ![Skeletal formula of L-arginine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=29952)
     Arg,
+
+    /// [L-histidine](https://en.wikipedia.org/wiki/Histidine).
+    ///
+    /// ![Skeletal formula of L-histidine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=29979)
     His,
+
+    /// [L-lysine](https://en.wikipedia.org/wiki/Lysine).
+    ///
+    /// ![Skeletal formula of L-lysine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=29967)
     Lys,
+
+    /// [L-aspartic acid (L-aspartate)](https://en.wikipedia.org/wiki/Aspartic_acid).
+    ///
+    /// ![Skeletal formula of L-aspartic acid](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=29958)
     Asp,
+
+    /// [L-glutamic acid (L-glutamate)](https://en.wikipedia.org/wiki/Glutamic_acid).
+    ///
+    /// ![Skeletal formula of L-glutamic acid](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=29972)
     Glu,
+
+    /// [L-serine](https://en.wikipedia.org/wiki/Serine).
+    ///
+    /// ![Skeletal formula of L-serine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=29999)
     Ser,
+
+    /// [L-threonine](https://en.wikipedia.org/wiki/Threonine).
+    ///
+    /// ![Skeletal formula of L-threonine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=30013)
     Thr,
+
+    /// [L-asparagine](https://en.wikipedia.org/wiki/Asparagine).
+    ///
+    /// ![Skeletal formula of L-asparagine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=50347)
     Asn,
+
+    /// [L-glutamine](https://en.wikipedia.org/wiki/Glutamine).
+    ///
+    /// ![Skeletal formula of L-glutamine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=30011)
     Gln,
+
+    /// [Glycine](https://en.wikipedia.org/wiki/Glycine).
+    ///
+    /// ![Skeletal formula of Glycine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=29947).
     Gly,
+
+    /// [L-proline](https://en.wikipedia.org/wiki/Proline).
+    ///
+    /// ![Skeletal formula of L-proline](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=50342)
     Pro,
+
+    /// [L-cysteine](https://en.wikipedia.org/wiki/Cysteine).
+    ///
+    /// ![Skeletal formula of L-cysteine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=29950)
     Cys,
+
+    /// [L-selenocysteine](https://en.wikipedia.org/wiki/Selenocysteine).
+    ///
+    /// ![Skeletal formula of L-selenocysteine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=30000)
     Sec,
+
+    /// [L-alanine](https://en.wikipedia.org/wiki/Alanine).
+    ///
+    /// ![Skeletal formula of L-alanine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=46217)
     Ala,
+
+    /// [L-valine](https://en.wikipedia.org/wiki/Valine).
+    ///
+    /// ![Skeletal formula of L-valine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=30015)
     Val,
+
+    /// [L-isoleucine](https://en.wikipedia.org/wiki/Isoleucine).
+    ///
+    /// ![Skeletal formula of L-isoleucine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=30009)
     Ile,
+
+    /// [L-leucine](https://en.wikipedia.org/wiki/Leucine).
+    ///
+    /// ![Skeletal formula of L-leucine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=30006)
     Leu,
+
+    /// [L-methionine](https://en.wikipedia.org/wiki/Methionine).
+    ///
+    /// ![Skeletal formula of L-methionine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=16044)
     Met,
+
+    /// [L-phenylalanine](https://en.wikipedia.org/wiki/Phenylalanine).
+    ///
+    /// ![Skeletal formula of L-phenylalanine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=29997)
     Phe,
+
+    /// [L-tyrosine](https://en.wikipedia.org/wiki/Tyrosine).
+    ///
+    /// ![Skeletal formula of L-tyrosine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=46858)
     Tyr,
+
+    /// [L-tryptophan](https://en.wikipedia.org/wiki/Tryptophan).
+    ///
+    /// ![Skeletal formula of L-tryptophan](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=29954)
     Trp,
 }
 
