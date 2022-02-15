@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 extern crate purr;
 
 use purr::feature::Aliphatic;
@@ -22,7 +24,7 @@ impl std::fmt::Display for UnknownResidue {
 
 impl std::error::Error for UnknownResidue {}
 
-/// A L-α amino-acid.
+/// A single L-α amino-acid.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AminoAcid {
     /// [L-arginine](https://en.wikipedia.org/wiki/Arginine).
