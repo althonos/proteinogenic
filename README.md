@@ -29,7 +29,33 @@ let sequence = "KGILGKLGVVQAGVDFVSGVWAGIKQSAKDHPNA";
 let residues = sequence.chars()
   .map(|c| proteinogenic::AminoAcid::from_code1(c).unwrap());
 
-proteinogenic::smiles(residues);
+let s = proteinogenic::smiles(residues);
+```
+
+This SMILES string can then be given in conjunction with cheminformatics toolkits,
+for instance using OpenBabel to generate an SVG figure:
+
+![Skeletal formula of divergicin 750](https://raw.github.com/althonos/proteinogenic/master/static/divergicin.png)
+
+Note that `proteinogenic` is not limited to building a SMILES string; it can
+actually use any [`purr::walk::Follower`](https://docs.rs/purr/latest/purr/walk/trait.Follower.html)
+implementor to generate an in-memory representation of a protein formula. If
+your code is already compatible with `purr`, then you'll be able to use
+protein sequences quite easily.
+
+```rust
+extern crate proteinogenic;
+extern crate purr;
+
+let sequence = "KGILGKLGVVQAGVDFVSGVWAGIKQSAKDHPNA";
+let residues = sequence.chars()
+  .map(|c| proteinogenic::AminoAcid::from_code1(c).unwrap());
+
+let mut builder = purr::graph::Builder::new();
+proteinogenic::visit(residues, &mut builder);
+
+builder.build()
+  .expect("failed to create a graph representation");
 ```
 
 *The API is not yet stable, and may change to follow changes introduced by
