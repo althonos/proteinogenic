@@ -37,6 +37,7 @@ test_peptide!(test_methionine, 6137, Met);
 test_peptide!(test_phenylalanine, 6140, Phe);
 test_peptide!(test_tyrosine, 6057, Tyr);
 test_peptide!(test_tryptophan, 6305, Trp);
+test_peptide!(test_pyrrolysine, 5460671, Pyl);
 
 test_peptide!(test_alanylvaline, 96799, Ala, Val);
 test_peptide!(test_alanylhistidine, 9837455, Ala, His);

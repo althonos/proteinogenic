@@ -131,6 +131,11 @@ pub enum AminoAcid {
     ///
     /// ![Skeletal formula of L-tryptophan](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=29954)
     Trp,
+
+    /// [L-Pyrrolysine](https://fr.wikipedia.org/wiki/Pyrrolysine)
+    ///
+    /// ![Skeletal formula of L-pyrrolysine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=21860)
+    Pyl,
 }
 
 impl AminoAcid {
@@ -159,6 +164,30 @@ impl AminoAcid {
         };
 
         match self {
+            AminoAcid::Pyl => {
+                // alpha carbon
+                follower.extend(BondKind::Elided, CARBON_TH2);
+                // residue
+                follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
+                follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
+                follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
+                follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
+                follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::N));
+                follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
+                follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
+                follower.pop(1);
+                follower.extend(BondKind::Elided, CARBON_TH1);
+                follower.join(BondKind::Elided, purr::feature::Rnum::R1);
+                follower.extend(BondKind::Elided, CARBON_TH1);
+                follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
+                follower.pop(1);
+                follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
+                follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
+                follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::N));
+                follower.join(BondKind::Elided, purr::feature::Rnum::R1);
+                follower.pop(11);
+            }
+
             AminoAcid::Gly => {
                 // alpha carbon
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
@@ -453,6 +482,7 @@ impl AminoAcid {
             'F' => Ok(AminoAcid::Phe),
             'Y' => Ok(AminoAcid::Tyr),
             'W' => Ok(AminoAcid::Trp),
+            'O' => Ok(AminoAcid::Pyl),
             _ => Err(UnknownResidue),
         }
     }
@@ -481,6 +511,7 @@ impl AminoAcid {
             "Phe" => Ok(AminoAcid::Phe),
             "Tyr" => Ok(AminoAcid::Tyr),
             "Trp" => Ok(AminoAcid::Trp),
+            "Pyl" => Ok(AminoAcid::Pyl),
             _ => Err(UnknownResidue),
         }
     }
