@@ -136,6 +136,11 @@ pub enum AminoAcid {
     ///
     /// ![Skeletal formula of L-pyrrolysine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=21860)
     Pyl,
+
+    /// [2,3-didehydroalanine](https://en.wikipedia.org/wiki/Dehydroalanine)
+    ///
+    /// ![Skeletal formula of 2,3-didehydroalanine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=90873)
+    Dha,
 }
 
 impl AminoAcid {
@@ -164,6 +169,14 @@ impl AminoAcid {
         };
 
         match self {
+            AminoAcid::Dha => {
+                // alpha carbon
+                follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
+                // residue
+                follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::C));
+                follower.pop(1);
+            }
+
             AminoAcid::Pyl => {
                 // alpha carbon
                 follower.extend(BondKind::Elided, CARBON_TH2);
@@ -512,6 +525,7 @@ impl AminoAcid {
             "Tyr" => Ok(AminoAcid::Tyr),
             "Trp" => Ok(AminoAcid::Trp),
             "Pyl" => Ok(AminoAcid::Pyl),
+            "Dha" => Ok(AminoAcid::Dha),
             _ => Err(UnknownResidue),
         }
     }
