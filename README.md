@@ -32,8 +32,8 @@ let residues = sequence.chars()
 let s = proteinogenic::smiles(residues);
 ```
 
-This SMILES string can then be given in conjunction with cheminformatics toolkits,
-for instance using [OpenBabel](http://openbabel.org/wiki/Main_Page) to generate a PNG figure:
+This SMILES string can be used in conjunction with other cheminformatics toolkits,
+for instance [OpenBabel](http://openbabel.org/wiki/Main_Page) which can generate a PNG figure:
 
 ![Skeletal formula of divergicin 750](https://raw.github.com/althonos/proteinogenic/master/static/divergicin.png)
 
