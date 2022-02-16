@@ -20,6 +20,7 @@ macro_rules! test_peptide {
             let s = proteinogenic::smiles([$(proteinogenic::AminoAcid::$variant),*]);
             let compound = pubchem::Compound::with_smiles(&s);
             let cid = compound.cids().expect("PubChem retrieval failed");
+            println!("{:?}", &cid);
             assert_eq!(cid[0], $cid, "failed to retrieve compound using smiles {:?}", s);
             drop(l);
         }
@@ -49,6 +50,7 @@ test_peptide!(test_tyrosine, 6057, Tyr);
 test_peptide!(test_tryptophan, 6305, Trp);
 test_peptide!(test_pyrrolysine, 5460671, Pyl);
 test_peptide!(test_dehydroalanine, 123991, Dha);
+test_peptide!(test_dehydrobutyrine, 6449989, Dhb);
 
 test_peptide!(test_alanylvaline, 96799, Ala, Val);
 test_peptide!(test_alanylhistidine, 9837455, Ala, His);

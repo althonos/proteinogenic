@@ -132,15 +132,20 @@ pub enum AminoAcid {
     /// ![Skeletal formula of L-tryptophan](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=29954)
     Trp,
 
-    /// [L-Pyrrolysine](https://fr.wikipedia.org/wiki/Pyrrolysine)
+    /// [L-Pyrrolysine](https://fr.wikipedia.org/wiki/Pyrrolysine).
     ///
     /// ![Skeletal formula of L-pyrrolysine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=21860)
     Pyl,
 
-    /// [2,3-didehydroalanine](https://en.wikipedia.org/wiki/Dehydroalanine)
+    /// [2,3-didehydroalanine](https://en.wikipedia.org/wiki/Dehydroalanine).
     ///
     /// ![Skeletal formula of 2,3-didehydroalanine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=90873)
     Dha,
+
+    /// (Z)-dehydrobutyrine.
+    ///
+    /// ![Skeletal formula of (Z)-dehydrobutyrine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=18820)
+    Dhb,
 }
 
 impl AminoAcid {
@@ -169,6 +174,15 @@ impl AminoAcid {
         };
 
         match self {
+            AminoAcid::Dhb => {
+                // alpha carbon
+                follower.extend(BondKind::Up, AtomKind::Aliphatic(Aliphatic::C));
+                // residue
+                follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::C));
+                follower.extend(BondKind::Down, AtomKind::Aliphatic(Aliphatic::C));
+                follower.pop(2);
+            }
+
             AminoAcid::Dha => {
                 // alpha carbon
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
@@ -526,6 +540,7 @@ impl AminoAcid {
             "Trp" => Ok(AminoAcid::Trp),
             "Pyl" => Ok(AminoAcid::Pyl),
             "Dha" => Ok(AminoAcid::Dha),
+            "Dhb" => Ok(AminoAcid::Dhb),
             _ => Err(UnknownResidue),
         }
     }
