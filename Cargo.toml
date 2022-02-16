@@ -7,7 +7,7 @@ license = "MIT"
 repository = "https://github.com/fastobo/proteinogenic"
 homepage = "https://github.com/fastobo/proteinogenic"
 description = "Chemical structure generation for protein sequences as SMILES string"
-keywords = ["protein", "amino acid", "cheminformatics", "smiles", "formula"]
+keywords = ["protein", "aminoacid", "cheminformatics", "smiles", "formula"]
 categories = ["science"]
 
 [dependencies]
