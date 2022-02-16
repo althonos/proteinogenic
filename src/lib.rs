@@ -387,10 +387,10 @@ impl AminoAcid {
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
                 follower.join(BondKind::Elided, purr::feature::Rnum::R1);
-                follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::N));
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::N));
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
+                follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::N));
                 follower.join(BondKind::Elided, purr::feature::Rnum::R1);
                 follower.pop(6);
             }
