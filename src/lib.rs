@@ -149,13 +149,103 @@ pub enum AminoAcid {
 }
 
 impl AminoAcid {
+    /// Create an `AminoAcid` variant from a 1-letter code.
+    pub fn from_code1(code: char) -> Result<AminoAcid, UnknownResidue> {
+        match code {
+            'R' => Ok(AminoAcid::Arg),
+            'H' => Ok(AminoAcid::His),
+            'K' => Ok(AminoAcid::Lys),
+            'D' => Ok(AminoAcid::Asp),
+            'E' => Ok(AminoAcid::Glu),
+            'S' => Ok(AminoAcid::Ser),
+            'T' => Ok(AminoAcid::Thr),
+            'N' => Ok(AminoAcid::Asn),
+            'Q' => Ok(AminoAcid::Gln),
+            'G' => Ok(AminoAcid::Gly),
+            'P' => Ok(AminoAcid::Pro),
+            'C' => Ok(AminoAcid::Cys),
+            'U' => Ok(AminoAcid::Sec),
+            'A' => Ok(AminoAcid::Ala),
+            'V' => Ok(AminoAcid::Val),
+            'I' => Ok(AminoAcid::Ile),
+            'L' => Ok(AminoAcid::Leu),
+            'M' => Ok(AminoAcid::Met),
+            'F' => Ok(AminoAcid::Phe),
+            'Y' => Ok(AminoAcid::Tyr),
+            'W' => Ok(AminoAcid::Trp),
+            'O' => Ok(AminoAcid::Pyl),
+            _ => Err(UnknownResidue),
+        }
+    }
+
+    /// Create an `AminoAcid` variant from a 3-letter code.
+    pub fn from_code3(code: &str) -> Result<AminoAcid, UnknownResidue> {
+        match code {
+            "Arg" => Ok(AminoAcid::Arg),
+            "His" => Ok(AminoAcid::His),
+            "Lys" => Ok(AminoAcid::Lys),
+            "Asp" => Ok(AminoAcid::Asp),
+            "Glu" => Ok(AminoAcid::Glu),
+            "Ser" => Ok(AminoAcid::Ser),
+            "Thr" => Ok(AminoAcid::Thr),
+            "Asn" => Ok(AminoAcid::Asn),
+            "Gln" => Ok(AminoAcid::Gln),
+            "Gly" => Ok(AminoAcid::Gly),
+            "Pro" => Ok(AminoAcid::Pro),
+            "Cys" => Ok(AminoAcid::Cys),
+            "Sec" => Ok(AminoAcid::Sec),
+            "Ala" => Ok(AminoAcid::Ala),
+            "Val" => Ok(AminoAcid::Val),
+            "Ile" => Ok(AminoAcid::Ile),
+            "Leu" => Ok(AminoAcid::Leu),
+            "Met" => Ok(AminoAcid::Met),
+            "Phe" => Ok(AminoAcid::Phe),
+            "Tyr" => Ok(AminoAcid::Tyr),
+            "Trp" => Ok(AminoAcid::Trp),
+            "Pyl" => Ok(AminoAcid::Pyl),
+            "Dha" => Ok(AminoAcid::Dha),
+            "Dhb" => Ok(AminoAcid::Dhb),
+            _ => Err(UnknownResidue),
+        }
+    }
+}
+
+/// A peptide cyclization mechanism.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Cyclization {
+    /// No cyclization, resulting in a linear peptide.
+    None,
+
+    /// Head-to-tail cyclization, resulting in an homodetic cyclic peptide.
+    HeadToTail,
+}
+
+impl Default for Cyclization {
+    fn default() -> Self {
+        Cyclization::None
+    }
+}
+
+#[derive(Debug)]
+pub struct Protein<S> {
+    cyclization: Cyclization,
+    sequence: S,
+}
+
+impl<S> Protein<S> {
+    /// Mark whether the peptide is cyclized through a known cyclization mechanism.
+    pub fn cyclization(&mut self, cyclization: Cyclization) -> &mut Self {
+        self.cyclization = cyclization;
+        self
+    }
+
     /// Perform a walk on the atoms and bonds of the amino acid.
     ///
     /// The follower must have been initialized with a head. It will finish its
     /// walk on the β carbon, without visiting the atoms part of the peptidic
     /// bond.
     ///
-    pub fn visit<F: Follower>(&self, follower: &mut F) {
+    fn visit_residue<F: Follower>(aa: AminoAcid, follower: &mut F) {
         const CARBON_TH2: AtomKind = AtomKind::Bracket {
             symbol: BracketSymbol::Element(Element::C),
             configuration: Some(Configuration::TH2),
@@ -173,7 +263,7 @@ impl AminoAcid {
             map: None,
         };
 
-        match self {
+        match aa {
             AminoAcid::Dhb => {
                 // alpha carbon
                 follower.extend(BondKind::Up, AtomKind::Aliphatic(Aliphatic::C));
@@ -484,64 +574,51 @@ impl AminoAcid {
         // beta carbon
         follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
     }
+}
 
-    /// Create an `AminoAcid` variant from a 1-letter code.
-    pub fn from_code1(code: char) -> Result<AminoAcid, UnknownResidue> {
-        match code {
-            'R' => Ok(AminoAcid::Arg),
-            'H' => Ok(AminoAcid::His),
-            'K' => Ok(AminoAcid::Lys),
-            'D' => Ok(AminoAcid::Asp),
-            'E' => Ok(AminoAcid::Glu),
-            'S' => Ok(AminoAcid::Ser),
-            'T' => Ok(AminoAcid::Thr),
-            'N' => Ok(AminoAcid::Asn),
-            'Q' => Ok(AminoAcid::Gln),
-            'G' => Ok(AminoAcid::Gly),
-            'P' => Ok(AminoAcid::Pro),
-            'C' => Ok(AminoAcid::Cys),
-            'U' => Ok(AminoAcid::Sec),
-            'A' => Ok(AminoAcid::Ala),
-            'V' => Ok(AminoAcid::Val),
-            'I' => Ok(AminoAcid::Ile),
-            'L' => Ok(AminoAcid::Leu),
-            'M' => Ok(AminoAcid::Met),
-            'F' => Ok(AminoAcid::Phe),
-            'Y' => Ok(AminoAcid::Tyr),
-            'W' => Ok(AminoAcid::Trp),
-            'O' => Ok(AminoAcid::Pyl),
-            _ => Err(UnknownResidue),
+impl<S> Protein<S>
+where
+    S: IntoIterator<Item=AminoAcid>,
+{
+    pub fn new(sequence: S) -> Self {
+        Self {
+            sequence,
+            cyclization: Cyclization::default(),
         }
     }
 
-    /// Create an `AminoAcid` variant from a 3-letter code.
-    pub fn from_code3(code: &str) -> Result<AminoAcid, UnknownResidue> {
-        match code {
-            "Arg" => Ok(AminoAcid::Arg),
-            "His" => Ok(AminoAcid::His),
-            "Lys" => Ok(AminoAcid::Lys),
-            "Asp" => Ok(AminoAcid::Asp),
-            "Glu" => Ok(AminoAcid::Glu),
-            "Ser" => Ok(AminoAcid::Ser),
-            "Thr" => Ok(AminoAcid::Thr),
-            "Asn" => Ok(AminoAcid::Asn),
-            "Gln" => Ok(AminoAcid::Gln),
-            "Gly" => Ok(AminoAcid::Gly),
-            "Pro" => Ok(AminoAcid::Pro),
-            "Cys" => Ok(AminoAcid::Cys),
-            "Sec" => Ok(AminoAcid::Sec),
-            "Ala" => Ok(AminoAcid::Ala),
-            "Val" => Ok(AminoAcid::Val),
-            "Ile" => Ok(AminoAcid::Ile),
-            "Leu" => Ok(AminoAcid::Leu),
-            "Met" => Ok(AminoAcid::Met),
-            "Phe" => Ok(AminoAcid::Phe),
-            "Tyr" => Ok(AminoAcid::Tyr),
-            "Trp" => Ok(AminoAcid::Trp),
-            "Pyl" => Ok(AminoAcid::Pyl),
-            "Dha" => Ok(AminoAcid::Dha),
-            "Dhb" => Ok(AminoAcid::Dhb),
-            _ => Err(UnknownResidue),
+    pub fn visit<F: Follower>(self, follower: &mut F) {
+        // visit every amino acid one by one
+        let mut aa_iter = self.sequence.into_iter();
+        if let Some(aa) = aa_iter.next() {
+            // N-terminus: create a the N of the primary amine.
+            follower.root(AtomKind::Aliphatic(Aliphatic::N));
+            if self.cyclization == Cyclization::HeadToTail {
+                follower.join(BondKind::Elided, purr::feature::Rnum::R0);
+            }
+
+            // visit residue
+            Self::visit_residue(aa, follower);
+
+            // add the carboxy group to the β carbon.
+            follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
+            follower.pop(1);
+            // keep visiting following amino acids.
+            while let Some(aa) = aa_iter.next() {
+                // next amino acid: create the N atom of the carboxamide and visit residue.
+                follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::N));
+                Self::visit_residue(aa, follower);
+                // add the carboxy group to the β carbon.
+                follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
+                follower.pop(1);
+            }
+
+            // C-terminus: create the O atom of the carboxylic acid.
+            if self.cyclization == Cyclization::HeadToTail {
+                follower.join(BondKind::Elided, purr::feature::Rnum::R0);
+            } else {
+                follower.extend(BondKind::Single, AtomKind::Aliphatic(Aliphatic::O));
+            }
         }
     }
 }
@@ -552,27 +629,7 @@ where
     S: IntoIterator<Item = AminoAcid>,
     F: Follower,
 {
-    // visit every amino acid one by one
-    let mut aa_iter = sequence.into_iter();
-    if let Some(aa) = aa_iter.next() {
-        // first amino acid: create a the N of the primary amine and visit residue.
-        follower.root(AtomKind::Aliphatic(Aliphatic::N));
-        aa.visit(follower);
-        // add the carboxy group to the β carbon.
-        follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
-        follower.pop(1);
-        // keep visiting following amino acids.
-        while let Some(aa) = aa_iter.next() {
-            // next amino acid: create the N atom of the carboxamide and visit residue.
-            follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::N));
-            aa.visit(follower);
-            // add the carboxy group to the β carbon.
-            follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
-            follower.pop(1);
-        }
-        // final amino acid: create the O atom of the carboxylic acid.
-        follower.extend(BondKind::Single, AtomKind::Aliphatic(Aliphatic::O));
-    }
+    Protein::new(sequence).visit(follower)
 }
 
 /// Create a SMILES string for the given amino-acid sequence.

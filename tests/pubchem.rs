@@ -8,53 +8,80 @@ extern crate pubchem;
 use std::sync::Mutex;
 use lazy_static::lazy_static;
 
+use proteinogenic::AminoAcid::*;
+use proteinogenic::Cyclization;
+use proteinogenic::Protein;
+
 lazy_static! {
     static ref LOCK: Mutex<()> = Mutex::new(());
 }
 
 macro_rules! test_peptide {
-    ($name:ident, $cid:expr, $($variant:ident),*) => {
+    ($name:ident, $cid:expr, $seq:expr) => {
+        test_peptide!($name, $cid, $seq, Cyclization::None);
+    };
+    ($name:ident, $cid:expr, $seq:expr, $cyclization:expr) => {
         #[test]
         pub fn $name() {
+            // let s = proteinogenic::smiles($seq);
+            // let l = LOCK.lock().unwrap();
+            // let compound = pubchem::Compound::with_smiles(&s);
+            // let cid = compound.cids().expect("PubChem retrieval failed");
+            // assert_eq!(cid[0], $cid, "failed to retrieve compound using smiles {:?}", s);
+            // drop(l);
+
+            let mut protein = Protein::new($seq);
+            protein.cyclization($cyclization);
+
+            let mut writer = purr::write::Writer::new();
+            protein.visit(&mut writer);
+            let s = writer.write();
+
             let l = LOCK.lock().unwrap();
-            let s = proteinogenic::smiles([$(proteinogenic::AminoAcid::$variant),*]);
             let compound = pubchem::Compound::with_smiles(&s);
             let cid = compound.cids().expect("PubChem retrieval failed");
-            println!("{:?}", &cid);
-            assert_eq!(cid[0], $cid, "failed to retrieve compound using smiles {:?}", s);
             drop(l);
+
+            assert_eq!(cid[0], $cid, "failed to retrieve compound using smiles {:?}", s);
         }
     };
 }
 
-test_peptide!(test_alanine, 5950, Ala);
-test_peptide!(test_arginine, 6322, Arg);
-test_peptide!(test_histidine, 6274, His);
-test_peptide!(test_lysine, 5962, Lys);
-test_peptide!(test_aspartate, 5960, Asp);
-test_peptide!(test_glutamate, 33032, Glu);
-test_peptide!(test_serine, 5951, Ser);
-test_peptide!(test_threonine, 6288, Thr);
-test_peptide!(test_asparagine, 6267, Asn);
-test_peptide!(test_glutamine, 5961, Gln);
-test_peptide!(test_glycine, 750, Gly);
-test_peptide!(test_proline, 145742, Pro);
-test_peptide!(test_cysteine, 5862, Cys);
-test_peptide!(test_selenocystein, 6326983, Sec);
-test_peptide!(test_valine, 6287, Val);
-test_peptide!(test_isoleucine, 6306, Ile);
-test_peptide!(test_leucine, 6106, Leu);
-test_peptide!(test_methionine, 6137, Met);
-test_peptide!(test_phenylalanine, 6140, Phe);
-test_peptide!(test_tyrosine, 6057, Tyr);
-test_peptide!(test_tryptophan, 6305, Trp);
-test_peptide!(test_pyrrolysine, 5460671, Pyl);
-test_peptide!(test_dehydroalanine, 123991, Dha);
-test_peptide!(test_dehydrobutyrine, 6449989, Dhb);
+// monopeptides
+test_peptide!(test_alanine, 5950, [Ala]);
+test_peptide!(test_arginine, 6322, [Arg]);
+test_peptide!(test_histidine, 6274, [His]);
+test_peptide!(test_lysine, 5962, [Lys]);
+test_peptide!(test_aspartate, 5960, [Asp]);
+test_peptide!(test_glutamate, 33032, [Glu]);
+test_peptide!(test_serine, 5951, [Ser]);
+test_peptide!(test_threonine, 6288, [Thr]);
+test_peptide!(test_asparagine, 6267, [Asn]);
+test_peptide!(test_glutamine, 5961, [Gln]);
+test_peptide!(test_glycine, 750, [Gly]);
+test_peptide!(test_proline, 145742, [Pro]);
+test_peptide!(test_cysteine, 5862, [Cys]);
+test_peptide!(test_selenocystein, 6326983, [Sec]);
+test_peptide!(test_valine, 6287, [Val]);
+test_peptide!(test_isoleucine, 6306, [Ile]);
+test_peptide!(test_leucine, 6106, [Leu]);
+test_peptide!(test_methionine, 6137, [Met]);
+test_peptide!(test_phenylalanine, 6140, [Phe]);
+test_peptide!(test_tyrosine, 6057, [Tyr]);
+test_peptide!(test_tryptophan, 6305, [Trp]);
+test_peptide!(test_pyrrolysine, 5460671, [Pyl]);
+test_peptide!(test_dehydroalanine, 123991, [Dha]);
+test_peptide!(test_dehydrobutyrine, 6449989, [Dhb]);
 
-test_peptide!(test_alanylvaline, 96799, Ala, Val);
-test_peptide!(test_alanylhistidine, 9837455, Ala, His);
-test_peptide!(test_prolylproline, 11622593, Pro, Pro);
+// dipeptides
+test_peptide!(test_alanylvaline, 96799, [Ala, Val]);
+test_peptide!(test_alanylhistidine, 9837455, [Ala, His]);
+test_peptide!(test_prolylproline, 11622593, [Pro, Pro]);
 
-test_peptide!(test_phenylalanylanalylvaline, 145457130, Phe, Ala, Val);
-test_peptide!(test_threonylcysteinyltryptophan, 145458016, Thr, Cys, Trp);
+// tripeptides
+test_peptide!(test_phenylalanylanalylvaline, 145457130, [Phe, Ala, Val]);
+test_peptide!(test_threonylcysteinyltryptophan, 145458016, [Thr, Cys, Trp]);
+
+// cyclic oligopeptides
+test_peptide!(test_kawaguchipeptin_b, 16143430, [Asn, Asn, Trp, Ser, Thr, Pro, Trp, Leu, Asn, Gly, Asp], Cyclization::HeadToTail);
+test_peptide!(test_cyclo_anon1, 16747615, [Asn, Asp, Lys, Gly, Gly, Leu, Met, Lys, Thr], Cyclization::HeadToTail);
