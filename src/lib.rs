@@ -74,6 +74,27 @@ pub enum Error {
     TooManyCrossLinks,
 }
 
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        match self {
+            Error::TooManyCrossLinks => {
+                write!(
+                    f,
+                    "number of cross-links in protein exceeds the allowed value"
+                )
+            }
+            Error::DuplicateCrossLink(i) => {
+                write!(f, "residue {} is already involded in a cross-link", i)
+            }
+            Error::InvalidCrossLink(i, aa, _) => {
+                write!(f, "invalid cross-link for residue {} ({})", i, aa.as_code())
+            }
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
 /// A single L-α amino-acid.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AminoAcid {
@@ -256,6 +277,36 @@ impl AminoAcid {
             "Dha" => Ok(AminoAcid::Dha),
             "Dhb" => Ok(AminoAcid::Dhb),
             _ => Err(UnknownResidue),
+        }
+    }
+
+    /// The short code of the `AminoAcid` variant.
+    pub fn as_code(&self) -> &'static str {
+        match self {
+            AminoAcid::Arg => "Arg",
+            AminoAcid::His => "His",
+            AminoAcid::Lys => "Lys",
+            AminoAcid::Asp => "Asp",
+            AminoAcid::Glu => "Glu",
+            AminoAcid::Ser => "Ser",
+            AminoAcid::Thr => "Thr",
+            AminoAcid::Asn => "Asn",
+            AminoAcid::Gln => "Gln",
+            AminoAcid::Gly => "Gly",
+            AminoAcid::Pro => "Pro",
+            AminoAcid::Cys => "Cys",
+            AminoAcid::Sec => "Sec",
+            AminoAcid::Ala => "Ala",
+            AminoAcid::Val => "Val",
+            AminoAcid::Ile => "Ile",
+            AminoAcid::Leu => "Leu",
+            AminoAcid::Met => "Met",
+            AminoAcid::Phe => "Phe",
+            AminoAcid::Tyr => "Tyr",
+            AminoAcid::Trp => "Trp",
+            AminoAcid::Pyl => "Pyl",
+            AminoAcid::Dha => "Dha",
+            AminoAcid::Dhb => "Dhb",
         }
     }
 }
