@@ -20,16 +20,42 @@ This crate builds on top of [`purr`](https://docs.rs/purr), a crate providing
 primitives for reading and writing [SMILES].
 
 Use the `AminoAcid` enum to encode the sequence residues, and build a SMILES
-string with `proteinogenic::smiles`:
+string with `proteinogenic::smiles`. For example with *divergicin 750*:
 
 ```rust
 extern crate proteinogenic;
 
-let sequence = "KGILGKLGVVQAGVDFVSGVWAGIKQSAKDHPNA";
-let residues = sequence.chars()
-  .map(|c| proteinogenic::AminoAcid::from_code1(c).unwrap());
+let residues = "KGILGKLGVVQAGVDFVSGVWAGIKQSAKDHPNA"
+  .chars()
+  .map(proteinogenic::AminoAcid::from_code1)
+  .map(Result::unwrap);
+let s = proteinogenic::smiles(residues)
+  .expect("failed to generate SMILES string");
+```
 
-let s = proteinogenic::smiles(residues);
+Additional modifications can be carried out by using a `Peptide` struct to
+configure the rendering of the peptide. So far, disulfide bonds as well as
+lanthionine bridges are supported, as well as head-to-tail cyclization.
+For instance. we can generate the SMILES string of a
+[cyclotide](https://en.wikipedia.org/wiki/Cyclotide) such as
+[*kalata B1*](https://www.uniprot.org/uniprot/P56254):
+
+```rust
+extern crate proteinogenic;
+
+let residues = "GLPVCGETCVGGTCNTPGCTCSWPVCTRN"
+  .chars()
+  .map(proteinogenic::AminoAcid::from_code1)
+  .map(Result::unwrap);
+
+let mut p = proteinogenic::Protein::new(residues);
+p.cyclization(proteinogenic::Cyclization::HeadToTail);
+p.cross_link(proteinogenic::CrossLink::Cystine(5, 19)).unwrap();
+p.cross_link(proteinogenic::CrossLink::Cystine(9, 21)).unwrap();
+p.cross_link(proteinogenic::CrossLink::Cystine(14, 26)).unwrap();
+
+let s = p.smiles()
+  .expect("failed to generate SMILES string");
 ```
 
 This SMILES string can be used in conjunction with other cheminformatics toolkits,

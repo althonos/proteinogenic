@@ -730,6 +730,7 @@ impl<S> Protein<S>
 where
     S: IntoIterator<Item=AminoAcid>,
 {
+    /// Create a new `Protein` with the given sequence stream.
     pub fn new(sequence: S) -> Self {
         Self {
             sequence,
@@ -739,6 +740,7 @@ where
         }
     }
 
+    /// Visit each atom and bond of the sequence using the given follower.
     pub fn visit<F: Follower>(self, follower: &mut F) -> Result<(), Error> {
         // visit every amino acid one by one
         let mut aa_iter = self.sequence.into_iter().enumerate();
@@ -775,6 +777,13 @@ where
 
         Ok(())
     }
+
+    /// Generate a SMILES string for the protein.
+    pub fn smiles(self) -> Result<String, Error> {
+        let mut writer = purr::write::Writer::new();
+        self.visit(&mut writer)?;
+        Ok(writer.write())
+    }
 }
 
 /// Perform a walk on the atoms and bonds of the protein.
@@ -791,9 +800,7 @@ pub fn smiles<'aa, S>(sequence: S) -> Result<String, Error>
 where
     S: IntoIterator<Item = AminoAcid>,
 {
-    let mut writer = purr::write::Writer::new();
-    visit(sequence, &mut writer)?;
-    Ok(writer.write())
+    Protein::new(sequence).smiles()
 }
 
 #[cfg(test)]
