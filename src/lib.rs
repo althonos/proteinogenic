@@ -221,7 +221,7 @@ pub enum AminoAcid {
 
 impl AminoAcid {
     /// Create an `AminoAcid` variant from a 1-letter code.
-    pub fn from_code1(code: char) -> Result<AminoAcid, UnknownResidue> {
+    pub fn from_char(code: char) -> Result<AminoAcid, UnknownResidue> {
         match code {
             'R' => Ok(AminoAcid::Arg),
             'H' => Ok(AminoAcid::His),
@@ -250,7 +250,7 @@ impl AminoAcid {
     }
 
     /// Create an `AminoAcid` variant from a 3-letter code.
-    pub fn from_code3(code: &str) -> Result<AminoAcid, UnknownResidue> {
+    pub fn from_code(code: &str) -> Result<AminoAcid, UnknownResidue> {
         match code {
             "Arg" => Ok(AminoAcid::Arg),
             "His" => Ok(AminoAcid::His),
@@ -866,14 +866,14 @@ mod tests {
     }
 
     #[test]
-    fn from_code1() {
-        assert_eq!(AminoAcid::from_code1('Y'), Ok(AminoAcid::Tyr));
-        assert_eq!(AminoAcid::from_code1('α'), Err(UnknownResidue));
+    fn from_char() {
+        assert_eq!(AminoAcid::from_char('Y'), Ok(AminoAcid::Tyr));
+        assert_eq!(AminoAcid::from_char('α'), Err(UnknownResidue));
     }
 
     #[test]
-    fn from_code3() {
-        assert_eq!(AminoAcid::from_code3("Thr"), Ok(AminoAcid::Thr));
-        assert_eq!(AminoAcid::from_code3("Xyz"), Err(UnknownResidue));
+    fn from_code() {
+        assert_eq!(AminoAcid::from_code("Thr"), Ok(AminoAcid::Thr));
+        assert_eq!(AminoAcid::from_code("Xyz"), Err(UnknownResidue));
     }
 }

@@ -27,7 +27,7 @@ extern crate proteinogenic;
 
 let residues = "KGILGKLGVVQAGVDFVSGVWAGIKQSAKDHPNA"
   .chars()
-  .map(proteinogenic::AminoAcid::from_code1)
+  .map(proteinogenic::AminoAcid::from_char)
   .map(Result::unwrap);
 let s = proteinogenic::smiles(residues)
   .expect("failed to generate SMILES string");
@@ -45,7 +45,7 @@ extern crate proteinogenic;
 
 let residues = "GLPVCGETCVGGTCNTPGCTCSWPVCTRN"
   .chars()
-  .map(proteinogenic::AminoAcid::from_code1)
+  .map(proteinogenic::AminoAcid::from_char)
   .map(Result::unwrap);
 
 let mut p = proteinogenic::Protein::new(residues);
@@ -75,7 +75,8 @@ extern crate purr;
 
 let sequence = "KGILGKLGVVQAGVDFVSGVWAGIKQSAKDHPNA";
 let residues = sequence.chars()
-  .map(|c| proteinogenic::AminoAcid::from_code1(c).unwrap());
+  .map(proteinogenic::AminoAcid::from_char)
+  .map(Result::unwrap);
 
 let mut builder = purr::graph::Builder::new();
 proteinogenic::visit(residues, &mut builder);
