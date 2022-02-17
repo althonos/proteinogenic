@@ -11,8 +11,8 @@ use purr::feature::BondKind;
 use purr::feature::BracketSymbol;
 use purr::feature::Configuration;
 use purr::feature::Element;
-use purr::feature::VirtualHydrogen;
 use purr::feature::Rnum;
+use purr::feature::VirtualHydrogen;
 use purr::walk::Follower;
 
 /// An error marker for sequences containing invalid amino acids.
@@ -313,7 +313,7 @@ impl<S> Protein<S> {
 
     /// Add a cross-link between residues of the peptide.
     pub fn cross_link(&mut self, cross_link: CrossLink) -> Result<&mut Self, Error> {
-        let rnum = Rnum::try_from( self.cross_link_num ).unwrap(); // FIXME
+        let rnum = Rnum::try_from(self.cross_link_num).unwrap(); // FIXME
         match cross_link {
             CrossLink::Cystine(i, j) | CrossLink::Lan(i, j) | CrossLink::MeLan(i, j) => {
                 let val = (rnum, cross_link);
@@ -345,7 +345,7 @@ impl<S> Protein<S> {
         aa: AminoAcid,
         follower: &mut F,
         index: u16,
-        cross_links: &HashMap<u16, (Rnum, CrossLink)>
+        cross_links: &HashMap<u16, (Rnum, CrossLink)>,
     ) -> Result<(), Error> {
         const CARBON_TH2: AtomKind = AtomKind::Bracket {
             symbol: BracketSymbol::Element(Element::C),
@@ -728,7 +728,7 @@ impl<S> Protein<S> {
 
 impl<S> Protein<S>
 where
-    S: IntoIterator<Item=AminoAcid>,
+    S: IntoIterator<Item = AminoAcid>,
 {
     /// Create a new `Protein` with the given sequence stream.
     pub fn new(sequence: S) -> Self {

@@ -5,13 +5,13 @@ extern crate lazy_static;
 extern crate proteinogenic;
 extern crate pubchem;
 
-use std::sync::Mutex;
 use lazy_static::lazy_static;
+use std::sync::Mutex;
 
 use proteinogenic::AminoAcid::*;
+use proteinogenic::CrossLink;
 use proteinogenic::Cyclization;
 use proteinogenic::Protein;
-use proteinogenic::CrossLink;
 
 lazy_static! {
     static ref LOCK: Mutex<()> = Mutex::new(());
@@ -19,15 +19,33 @@ lazy_static! {
 
 macro_rules! test_peptide {
     ($name:ident, $cid:expr, $seq:expr) => {
-        test_peptide!($name, $cid, $seq, cyclization = Cyclization::None, cross_links = []);
+        test_peptide!(
+            $name,
+            $cid,
+            $seq,
+            cyclization = Cyclization::None,
+            cross_links = []
+        );
     };
 
     ($name:ident, $cid:expr, $seq:expr, cross_links = $cross_links:expr) => {
-        test_peptide!($name, $cid, $seq, cyclization = Cyclization::None, cross_links = $cross_links);
+        test_peptide!(
+            $name,
+            $cid,
+            $seq,
+            cyclization = Cyclization::None,
+            cross_links = $cross_links
+        );
     };
 
     ($name:ident, $cid:expr, $seq:expr, cyclization = $cyclization:expr) => {
-        test_peptide!($name, $cid, $seq, cyclization = $cyclization, cross_links = []);
+        test_peptide!(
+            $name,
+            $cid,
+            $seq,
+            cyclization = $cyclization,
+            cross_links = []
+        );
     };
 
     ($name:ident, $cid:expr, $seq:expr, cyclization = $cyclization:expr, cross_links = $cross_links:expr) => {
@@ -96,8 +114,18 @@ test_peptide!(test_phenylalanylanalylvaline, 145457130, [Phe, Ala, Val]);
 test_peptide!(test_threonylcysteinyltryptophan, 145458016, [Thr, Cys, Trp]);
 
 // cyclic oligopeptides
-test_peptide!(test_kawaguchipeptin_b, 16143430, [Asn, Asn, Trp, Ser, Thr, Pro, Trp, Leu, Asn, Gly, Asp], cyclization = Cyclization::HeadToTail);
-test_peptide!(test_cyclo_anon1, 16747615, [Asn, Asp, Lys, Gly, Gly, Leu, Met, Lys, Thr], cyclization = Cyclization::HeadToTail);
+test_peptide!(
+    test_kawaguchipeptin_b,
+    16143430,
+    [Asn, Asn, Trp, Ser, Thr, Pro, Trp, Leu, Asn, Gly, Asp],
+    cyclization = Cyclization::HeadToTail
+);
+test_peptide!(
+    test_cyclo_anon1,
+    16747615,
+    [Asn, Asp, Lys, Gly, Gly, Leu, Met, Lys, Thr],
+    cyclization = Cyclization::HeadToTail
+);
 
 // disulfide bonds
 test_peptide!(
