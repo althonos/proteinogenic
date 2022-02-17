@@ -2,6 +2,8 @@
 
 extern crate purr;
 
+use std::collections::HashMap;
+
 use purr::feature::Aliphatic;
 use purr::feature::Aromatic;
 use purr::feature::AtomKind;
@@ -10,6 +12,7 @@ use purr::feature::BracketSymbol;
 use purr::feature::Configuration;
 use purr::feature::Element;
 use purr::feature::VirtualHydrogen;
+use purr::feature::Rnum;
 use purr::walk::Follower;
 
 /// An error marker for sequences containing invalid amino acids.
@@ -210,6 +213,23 @@ impl AminoAcid {
     }
 }
 
+/// A covalent bond between several amino-acid residues.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CrossLink {
+    /// [L-cystine](https://en.wikipedia.org/wiki/Cystine).
+    ///
+    /// ![Skeletal formula of L-cystine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=50058)
+    Cystine(u16, u16),
+
+    /// [meso-lanthionine](https://en.wikipedia.org/wiki/Lanthionine).
+    ///
+    /// ![Skeletal formula of meso-lanthionine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=25205)
+    Lan(u16, u16),
+
+    /// β-methyllanthionine.
+    MeLan(u16, u16),
+}
+
 /// A peptide cyclization mechanism.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Cyclization {
@@ -226,9 +246,14 @@ impl Default for Cyclization {
     }
 }
 
+/// A protein abstracted as a modified peptide.
 #[derive(Debug)]
 pub struct Protein<S> {
     cyclization: Cyclization,
+
+    cross_links: HashMap<u16, (Rnum, CrossLink)>,
+    cross_link_num: u16,
+
     sequence: S,
 }
 
@@ -239,13 +264,38 @@ impl<S> Protein<S> {
         self
     }
 
+    /// Add a cross-link between residues of the peptide.
+    pub fn cross_link(&mut self, cross_link: CrossLink) -> &mut Self {
+        let rnum = Rnum::try_from( self.cross_link_num ).unwrap(); // FIXME
+        match cross_link {
+            CrossLink::Cystine(i, j) | CrossLink::Lan(i, j) | CrossLink::MeLan(i, j) => {
+                let val = (rnum, cross_link);
+                self.cross_links.insert(i, val.clone()).ok_or(()).unwrap_err(); // FIXME
+                self.cross_links.insert(j, val).ok_or(()).unwrap_err(); // FIXME
+            }
+        }
+
+        self.cross_link_num += 1;
+        self
+    }
+
     /// Perform a walk on the atoms and bonds of the amino acid.
     ///
     /// The follower must have been initialized with a head. It will finish its
     /// walk on the β carbon, without visiting the atoms part of the peptidic
     /// bond.
     ///
-    fn visit_residue<F: Follower>(aa: AminoAcid, follower: &mut F) {
+    /// # Note
+    /// This is implemented as an associated method rather than a function to
+    /// make the borrow-checker happy about us borrowing `self.sequence` mutably
+    /// and `self.cross_links` immutably.
+    ///
+    fn visit_residue<F: Follower>(
+        aa: AminoAcid,
+        follower: &mut F,
+        index: u16,
+        cross_links: &HashMap<u16, (Rnum, CrossLink)>
+    ) {
         const CARBON_TH2: AtomKind = AtomKind::Bracket {
             symbol: BracketSymbol::Element(Element::C),
             configuration: Some(Configuration::TH2),
@@ -294,14 +344,14 @@ impl<S> Protein<S> {
                 follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
                 follower.pop(1);
                 follower.extend(BondKind::Elided, CARBON_TH1);
-                follower.join(BondKind::Elided, purr::feature::Rnum::R1);
+                follower.join(BondKind::Elided, Rnum::R1);
                 follower.extend(BondKind::Elided, CARBON_TH1);
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
                 follower.pop(1);
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
                 follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::N));
-                follower.join(BondKind::Elided, purr::feature::Rnum::R1);
+                follower.join(BondKind::Elided, Rnum::R1);
                 follower.pop(11);
             }
 
@@ -320,13 +370,13 @@ impl<S> Protein<S> {
 
             AminoAcid::Pro => {
                 // proline ring
-                follower.join(BondKind::Elided, purr::feature::Rnum::R1);
+                follower.join(BondKind::Elided, Rnum::R1);
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
                 // alpha carbon
                 follower.extend(BondKind::Elided, CARBON_TH1);
-                follower.join(BondKind::Elided, purr::feature::Rnum::try_from(1).unwrap());
+                follower.join(BondKind::Elided, Rnum::R1);
             }
 
             AminoAcid::Val => {
@@ -369,13 +419,13 @@ impl<S> Protein<S> {
                 // residue
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
-                follower.join(BondKind::Elided, purr::feature::Rnum::R1);
+                follower.join(BondKind::Elided, Rnum::R1);
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
-                follower.join(BondKind::Elided, purr::feature::Rnum::R1);
+                follower.join(BondKind::Elided, Rnum::R1);
                 follower.pop(7);
             }
 
@@ -385,7 +435,7 @@ impl<S> Protein<S> {
                 // residue
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
-                follower.join(BondKind::Elided, purr::feature::Rnum::R1);
+                follower.join(BondKind::Elided, Rnum::R1);
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
@@ -393,7 +443,7 @@ impl<S> Protein<S> {
                 follower.pop(1);
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
-                follower.join(BondKind::Elided, purr::feature::Rnum::R1);
+                follower.join(BondKind::Elided, Rnum::R1);
                 follower.pop(7);
             }
 
@@ -402,8 +452,35 @@ impl<S> Protein<S> {
                 follower.extend(BondKind::Elided, CARBON_TH2);
                 // residue
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
-                follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::S));
-                follower.pop(2);
+                match cross_links.get(&index) {
+                    // no cross-link, just add the thiol group.
+                    None => {
+                        follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::S));
+                        follower.pop(2);
+                    }
+                    // cystine, add the first sulfur, the other Cys will add the second one.
+                    Some((rnum, CrossLink::Cystine(_, _))) => {
+                        follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::S));
+                        follower.join(BondKind::Elided, rnum.clone());
+                        follower.pop(2);
+                    }
+                    // lanthionine, by convention the sulfur comes from the first residue
+                    Some((rnum, CrossLink::Lan(i, _))) if *i == index => {
+                        follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::S));
+                        follower.join(BondKind::Elided, rnum.clone());
+                        follower.pop(2);
+                    }
+                    Some((rnum, CrossLink::Lan(_, _))) => {
+                        follower.join(BondKind::Elided, rnum.clone());
+                        follower.pop(1);
+                    }
+                    // methyllanthionine, add the sulfur, the threonine won't add the hydroxy group
+                    Some((rnum, CrossLink::MeLan(_, _))) => {
+                        follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::S));
+                        follower.join(BondKind::Elided, rnum.clone());
+                        follower.pop(2);
+                    }
+                }
             }
 
             AminoAcid::Ser => {
@@ -439,10 +516,20 @@ impl<S> Protein<S> {
                 follower.extend(BondKind::Elided, CARBON_TH2);
                 // residue
                 follower.extend(BondKind::Elided, CARBON_TH2);
-                follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
-                follower.pop(1);
-                follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::O));
-                follower.pop(2);
+                match cross_links.get(&index) {
+                    None => {
+                        follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
+                        follower.pop(1);
+                        follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::O));
+                        follower.pop(2);
+                    }
+                    Some((rnum, CrossLink::MeLan(_, _))) => {
+                        follower.join(BondKind::Elided, rnum.clone());
+                        follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
+                        follower.pop(2);
+                    }
+                    _ => unimplemented!("error handling on invalid cross-links"),
+                }
             }
 
             AminoAcid::Asn => {
@@ -503,12 +590,12 @@ impl<S> Protein<S> {
                 // residue
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
-                follower.join(BondKind::Elided, purr::feature::Rnum::R1);
+                follower.join(BondKind::Elided, Rnum::R1);
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::N));
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::N));
-                follower.join(BondKind::Elided, purr::feature::Rnum::R1);
+                follower.join(BondKind::Elided, Rnum::R1);
                 follower.pop(6);
             }
 
@@ -555,18 +642,18 @@ impl<S> Protein<S> {
                 // residue
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
-                follower.join(BondKind::Elided, purr::feature::Rnum::R1);
+                follower.join(BondKind::Elided, Rnum::R1);
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::N));
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
-                follower.join(BondKind::Elided, purr::feature::Rnum::R2);
+                follower.join(BondKind::Elided, Rnum::R2);
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
-                follower.join(BondKind::Elided, purr::feature::Rnum::R1);
-                follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
-                follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
+                follower.join(BondKind::Elided, Rnum::R1);
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
-                follower.join(BondKind::Elided, purr::feature::Rnum::R2);
+                follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
+                follower.extend(BondKind::Elided, AtomKind::Aromatic(Aromatic::C));
+                follower.join(BondKind::Elided, Rnum::R2);
                 follower.pop(10);
             }
         }
@@ -584,30 +671,32 @@ where
         Self {
             sequence,
             cyclization: Cyclization::default(),
+            cross_links: HashMap::new(),
+            cross_link_num: 3, // R0 is used for cyclization, R1 and R2 in residues
         }
     }
 
     pub fn visit<F: Follower>(self, follower: &mut F) {
         // visit every amino acid one by one
-        let mut aa_iter = self.sequence.into_iter();
-        if let Some(aa) = aa_iter.next() {
+        let mut aa_iter = self.sequence.into_iter().enumerate();
+        if let Some((index, aa)) = aa_iter.next() {
             // N-terminus: create a the N of the primary amine.
             follower.root(AtomKind::Aliphatic(Aliphatic::N));
             if self.cyclization == Cyclization::HeadToTail {
-                follower.join(BondKind::Elided, purr::feature::Rnum::R0);
+                follower.join(BondKind::Elided, Rnum::R0);
             }
 
             // visit residue
-            Self::visit_residue(aa, follower);
+            Self::visit_residue(aa, follower, index as u16 + 1, &self.cross_links);
 
             // add the carboxy group to the β carbon.
             follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
             follower.pop(1);
             // keep visiting following amino acids.
-            while let Some(aa) = aa_iter.next() {
+            while let Some((index, aa)) = aa_iter.next() {
                 // next amino acid: create the N atom of the carboxamide and visit residue.
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::N));
-                Self::visit_residue(aa, follower);
+                Self::visit_residue(aa, follower, index as u16 + 1, &self.cross_links);
                 // add the carboxy group to the β carbon.
                 follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
                 follower.pop(1);
@@ -615,7 +704,7 @@ where
 
             // C-terminus: create the O atom of the carboxylic acid.
             if self.cyclization == Cyclization::HeadToTail {
-                follower.join(BondKind::Elided, purr::feature::Rnum::R0);
+                follower.join(BondKind::Elided, Rnum::R0);
             } else {
                 follower.extend(BondKind::Single, AtomKind::Aliphatic(Aliphatic::O));
             }

@@ -11,6 +11,7 @@ use lazy_static::lazy_static;
 use proteinogenic::AminoAcid::*;
 use proteinogenic::Cyclization;
 use proteinogenic::Protein;
+use proteinogenic::CrossLink;
 
 lazy_static! {
     static ref LOCK: Mutex<()> = Mutex::new(());
@@ -18,9 +19,18 @@ lazy_static! {
 
 macro_rules! test_peptide {
     ($name:ident, $cid:expr, $seq:expr) => {
-        test_peptide!($name, $cid, $seq, Cyclization::None);
+        test_peptide!($name, $cid, $seq, cyclization = Cyclization::None, cross_links = []);
     };
-    ($name:ident, $cid:expr, $seq:expr, $cyclization:expr) => {
+
+    ($name:ident, $cid:expr, $seq:expr, cross_links = $cross_links:expr) => {
+        test_peptide!($name, $cid, $seq, cyclization = Cyclization::None, cross_links = $cross_links);
+    };
+
+    ($name:ident, $cid:expr, $seq:expr, cyclization = $cyclization:expr) => {
+        test_peptide!($name, $cid, $seq, cyclization = $cyclization, cross_links = []);
+    };
+
+    ($name:ident, $cid:expr, $seq:expr, cyclization = $cyclization:expr, cross_links = $cross_links:expr) => {
         #[test]
         pub fn $name() {
             // let s = proteinogenic::smiles($seq);
@@ -32,6 +42,9 @@ macro_rules! test_peptide {
 
             let mut protein = Protein::new($seq);
             protein.cyclization($cyclization);
+            for cross_link in $cross_links {
+                protein.cross_link(cross_link);
+            }
 
             let mut writer = purr::write::Writer::new();
             protein.visit(&mut writer);
@@ -42,7 +55,7 @@ macro_rules! test_peptide {
             let cid = compound.cids().expect("PubChem retrieval failed");
             drop(l);
 
-            assert_eq!(cid[0], $cid, "failed to retrieve compound using smiles {:?}", s);
+            assert_eq!(cid[0], $cid, "got compounds {:?} using smiles {:?}", cid, s);
         }
     };
 }
@@ -83,5 +96,13 @@ test_peptide!(test_phenylalanylanalylvaline, 145457130, [Phe, Ala, Val]);
 test_peptide!(test_threonylcysteinyltryptophan, 145458016, [Thr, Cys, Trp]);
 
 // cyclic oligopeptides
-test_peptide!(test_kawaguchipeptin_b, 16143430, [Asn, Asn, Trp, Ser, Thr, Pro, Trp, Leu, Asn, Gly, Asp], Cyclization::HeadToTail);
-test_peptide!(test_cyclo_anon1, 16747615, [Asn, Asp, Lys, Gly, Gly, Leu, Met, Lys, Thr], Cyclization::HeadToTail);
+test_peptide!(test_kawaguchipeptin_b, 16143430, [Asn, Asn, Trp, Ser, Thr, Pro, Trp, Leu, Asn, Gly, Asp], cyclization = Cyclization::HeadToTail);
+test_peptide!(test_cyclo_anon1, 16747615, [Asn, Asp, Lys, Gly, Gly, Leu, Met, Lys, Thr], cyclization = Cyclization::HeadToTail);
+
+// disulfide bonds
+test_peptide!(
+    test_chembl_3104242,
+    127028630,
+    [Gly, Cys, Cys, Ser, Asp, Pro, Arg, Cys, Ala, Trp, Arg, Cys],
+    cross_links = [CrossLink::Cystine(2, 8), CrossLink::Cystine(3, 12)]
+);
