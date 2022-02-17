@@ -27,6 +27,53 @@ impl std::fmt::Display for UnknownResidue {
 
 impl std::error::Error for UnknownResidue {}
 
+/// A generic error type for this crate.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Error {
+    /// A cross-link is invalid.
+    ///
+    /// This issue can occur when a requested cross-link cannot be created
+    /// from the amino acid residues at the given locations.
+    ///
+    /// # Example
+    /// A disulfide bond cannot be created from two L-alanine residues:
+    /// ```rust
+    /// use proteinogenic::Error;
+    /// use proteinogenic::AminoAcid::Ala;
+    ///
+    /// let mut prot = proteinogenic::Protein::new([Ala, Ala]);
+    /// prot.cross_link(proteinogenic::CrossLink::Cystine(1, 2)).unwrap();
+    ///
+    /// let mut f = purr::write::Writer::new();
+    /// assert!(matches!(prot.visit(&mut f), Err(Error::InvalidCrossLink(1, _, _))));
+    ///
+    /// ```
+    InvalidCrossLink(u16, AminoAcid, CrossLink),
+
+    /// A residue is involved in more than one cross-link.
+    ///
+    /// # Example
+    /// A cysteine can only be involved in one disulfide bond:
+    /// ```rust
+    /// use proteinogenic::Error;
+    /// use proteinogenic::AminoAcid::Cys;
+    ///
+    /// let mut prot = proteinogenic::Protein::new([Cys, Cys, Cys]);
+    /// prot.cross_link(proteinogenic::CrossLink::Cystine(1, 2)).unwrap();
+    /// assert_eq!(
+    ///     prot.cross_link(proteinogenic::CrossLink::Cystine(1, 3)),
+    ///     Err(Error::DuplicateCrossLink(1)),
+    /// );
+    /// ```
+    DuplicateCrossLink(u16),
+
+    /// Too many cross-links were created.
+    ///
+    /// This can occur when a protein contains too many cross-links, which will
+    /// exhaust the number of possibilites for ring identifiers in SMILES.
+    TooManyCrossLinks,
+}
+
 /// A single L-α amino-acid.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AminoAcid {
@@ -247,7 +294,7 @@ impl Default for Cyclization {
 }
 
 /// A protein abstracted as a modified peptide.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Protein<S> {
     cyclization: Cyclization,
 
@@ -265,18 +312,22 @@ impl<S> Protein<S> {
     }
 
     /// Add a cross-link between residues of the peptide.
-    pub fn cross_link(&mut self, cross_link: CrossLink) -> &mut Self {
+    pub fn cross_link(&mut self, cross_link: CrossLink) -> Result<&mut Self, Error> {
         let rnum = Rnum::try_from( self.cross_link_num ).unwrap(); // FIXME
         match cross_link {
             CrossLink::Cystine(i, j) | CrossLink::Lan(i, j) | CrossLink::MeLan(i, j) => {
                 let val = (rnum, cross_link);
-                self.cross_links.insert(i, val.clone()).ok_or(()).unwrap_err(); // FIXME
-                self.cross_links.insert(j, val).ok_or(()).unwrap_err(); // FIXME
+                if let Some(_) = self.cross_links.insert(i, val.clone()) {
+                    return Err(Error::DuplicateCrossLink(i));
+                }
+                if let Some(_) = self.cross_links.insert(j, val) {
+                    return Err(Error::DuplicateCrossLink(j));
+                }
             }
         }
 
         self.cross_link_num += 1;
-        self
+        Ok(self)
     }
 
     /// Perform a walk on the atoms and bonds of the amino acid.
@@ -295,7 +346,7 @@ impl<S> Protein<S> {
         follower: &mut F,
         index: u16,
         cross_links: &HashMap<u16, (Rnum, CrossLink)>
-    ) {
+    ) -> Result<(), Error> {
         const CARBON_TH2: AtomKind = AtomKind::Bracket {
             symbol: BracketSymbol::Element(Element::C),
             configuration: Some(Configuration::TH2),
@@ -313,6 +364,15 @@ impl<S> Protein<S> {
             map: None,
         };
 
+        // only L-threonine and L-cysteine can build a cross-link at the
+        // moment, any other amino-acid has to be an error.
+        if aa != AminoAcid::Thr && aa != AminoAcid::Cys {
+            if let Some((_, cross_link)) = cross_links.get(&index) {
+                return Err(Error::InvalidCrossLink(index, aa, *cross_link));
+            }
+        }
+
+        // visit the alpha carbon and the residue
         match aa {
             AminoAcid::Dhb => {
                 // alpha carbon
@@ -528,7 +588,9 @@ impl<S> Protein<S> {
                         follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
                         follower.pop(2);
                     }
-                    _ => unimplemented!("error handling on invalid cross-links"),
+                    Some((_, other)) => {
+                        return Err(Error::InvalidCrossLink(index, aa, *other));
+                    }
                 }
             }
 
@@ -658,8 +720,9 @@ impl<S> Protein<S> {
             }
         }
 
-        // beta carbon
+        // visit the beta carbon and finish
         follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
+        Ok(())
     }
 }
 
@@ -676,7 +739,7 @@ where
         }
     }
 
-    pub fn visit<F: Follower>(self, follower: &mut F) {
+    pub fn visit<F: Follower>(self, follower: &mut F) -> Result<(), Error> {
         // visit every amino acid one by one
         let mut aa_iter = self.sequence.into_iter().enumerate();
         if let Some((index, aa)) = aa_iter.next() {
@@ -687,7 +750,7 @@ where
             }
 
             // visit residue
-            Self::visit_residue(aa, follower, index as u16 + 1, &self.cross_links);
+            Self::visit_residue(aa, follower, index as u16 + 1, &self.cross_links)?;
 
             // add the carboxy group to the β carbon.
             follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
@@ -696,7 +759,7 @@ where
             while let Some((index, aa)) = aa_iter.next() {
                 // next amino acid: create the N atom of the carboxamide and visit residue.
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::N));
-                Self::visit_residue(aa, follower, index as u16 + 1, &self.cross_links);
+                Self::visit_residue(aa, follower, index as u16 + 1, &self.cross_links)?;
                 // add the carboxy group to the β carbon.
                 follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
                 follower.pop(1);
@@ -709,11 +772,13 @@ where
                 follower.extend(BondKind::Single, AtomKind::Aliphatic(Aliphatic::O));
             }
         }
+
+        Ok(())
     }
 }
 
 /// Perform a walk on the atoms and bonds of the protein.
-pub fn visit<'aa, S, F>(sequence: S, follower: &mut F)
+pub fn visit<'aa, S, F>(sequence: S, follower: &mut F) -> Result<(), Error>
 where
     S: IntoIterator<Item = AminoAcid>,
     F: Follower,
@@ -722,13 +787,13 @@ where
 }
 
 /// Create a SMILES string for the given amino-acid sequence.
-pub fn smiles<'aa, S>(sequence: S) -> String
+pub fn smiles<'aa, S>(sequence: S) -> Result<String, Error>
 where
     S: IntoIterator<Item = AminoAcid>,
 {
     let mut writer = purr::write::Writer::new();
-    visit(sequence, &mut writer);
-    writer.write()
+    visit(sequence, &mut writer)?;
+    Ok(writer.write())
 }
 
 #[cfg(test)]
@@ -738,7 +803,7 @@ mod tests {
 
     #[test]
     fn empty() {
-        let s = smiles([]);
+        let s = smiles([]).unwrap();
         assert_eq!(s, "");
     }
 

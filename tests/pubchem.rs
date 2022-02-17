@@ -43,11 +43,11 @@ macro_rules! test_peptide {
             let mut protein = Protein::new($seq);
             protein.cyclization($cyclization);
             for cross_link in $cross_links {
-                protein.cross_link(cross_link);
+                protein.cross_link(cross_link).unwrap();
             }
 
             let mut writer = purr::write::Writer::new();
-            protein.visit(&mut writer);
+            protein.visit(&mut writer).unwrap();
             let s = writer.write();
 
             let l = LOCK.lock().unwrap();
