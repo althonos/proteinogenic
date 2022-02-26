@@ -326,6 +326,11 @@ pub enum CrossLink {
 
     /// β-methyllanthionine.
     MeLan(u16, u16),
+
+    /// Lysinoalanine.
+    ///
+    /// ![Skeletal formula of Lysinoalanine](https://www.ebi.ac.uk/chebi/displayImage.do?defaultImage=true&imageIndex=0&chebiId=189781)
+    Lal(u16, u16),
 }
 
 /// A peptide cyclization mechanism.
@@ -366,7 +371,10 @@ impl<S> Protein<S> {
     pub fn cross_link(&mut self, cross_link: CrossLink) -> Result<&mut Self, Error> {
         let rnum = Rnum::try_from(self.cross_link_num).unwrap(); // FIXME
         match cross_link {
-            CrossLink::Cystine(i, j) | CrossLink::Lan(i, j) | CrossLink::MeLan(i, j) => {
+            CrossLink::Cystine(i, j)
+            | CrossLink::Lan(i, j)
+            | CrossLink::MeLan(i, j)
+            | CrossLink::Lal(i, j) => {
                 let val = (rnum, cross_link);
                 if let Some(_) = self.cross_links.insert(i, val.clone()) {
                     return Err(Error::DuplicateCrossLink(i));
@@ -415,11 +423,16 @@ impl<S> Protein<S> {
             map: None,
         };
 
-        // only L-threonine and L-cysteine can build a cross-link at the
-        // moment, any other amino-acid has to be an error.
-        if aa != AminoAcid::Thr && aa != AminoAcid::Cys {
-            if let Some((_, cross_link)) = cross_links.get(&index) {
-                return Err(Error::InvalidCrossLink(index, aa, *cross_link));
+        // only some amino-acids can build a cross-link
+        if let Some((_, cross_link)) = cross_links.get(&index) {
+            match aa {
+                AminoAcid::Thr => (),
+                AminoAcid::Cys => (),
+                AminoAcid::Ser => (),
+                AminoAcid::Lys => (),
+                other => {
+                    return Err(Error::InvalidCrossLink(index, other, *cross_link));
+                }
             }
         }
 
@@ -587,6 +600,10 @@ impl<S> Protein<S> {
                         follower.join(BondKind::Elided, rnum.clone());
                         follower.pop(2);
                     }
+                    // other cross-links are not permitted
+                    Some((_, other)) => {
+                        return Err(Error::InvalidCrossLink(index, aa, *other));
+                    }
                 }
             }
 
@@ -601,8 +618,8 @@ impl<S> Protein<S> {
                         follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::O));
                         follower.pop(2);
                     }
-                    // lanthionine, bridge with the sulfur
-                    Some((rnum, CrossLink::Lan(_, _))) => {
+                    // lanthionine or lysinoalanine, bridge with the sulfur or nitrogen atom
+                    Some((rnum, CrossLink::Lan(_, _))) | Some((rnum, CrossLink::Lal(_, _))) => {
                         follower.join(BondKind::Elided, rnum.clone());
                         follower.pop(1);
                     }
@@ -704,6 +721,18 @@ impl<S> Protein<S> {
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::N));
+                match cross_links.get(&index) {
+                    // no cross-link, nothing to do
+                    None => (),
+                    // lysinoalanine, bridge with the other residue
+                    Some((rnum, CrossLink::Lal(_, _))) => {
+                        follower.join(BondKind::Elided, rnum.clone());
+                    }
+                    // other cross-links are not permitted
+                    Some((_, other)) => {
+                        return Err(Error::InvalidCrossLink(index, aa, *other));
+                    }
+                }
                 follower.pop(5);
             }
 
