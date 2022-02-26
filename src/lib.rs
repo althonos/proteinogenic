@@ -575,15 +575,11 @@ impl<S> Protein<S> {
                         follower.join(BondKind::Elided, rnum.clone());
                         follower.pop(2);
                     }
-                    // lanthionine, by convention the sulfur comes from the first residue
-                    Some((rnum, CrossLink::Lan(i, _))) if *i == index => {
+                    // lanthionine, the sulfur comes from the cysteine
+                    Some((rnum, CrossLink::Lan(_, _))) => {
                         follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::S));
                         follower.join(BondKind::Elided, rnum.clone());
                         follower.pop(2);
-                    }
-                    Some((rnum, CrossLink::Lan(_, _))) => {
-                        follower.join(BondKind::Elided, rnum.clone());
-                        follower.pop(1);
                     }
                     // methyllanthionine, add the sulfur, the threonine won't add the hydroxy group
                     Some((rnum, CrossLink::MeLan(_, _))) => {
@@ -599,8 +595,22 @@ impl<S> Protein<S> {
                 follower.extend(BondKind::Elided, CARBON_TH2);
                 // residue
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
-                follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::O));
-                follower.pop(2);
+                match cross_links.get(&index) {
+                    // no cross-link, just add the alcohol
+                    None => {
+                        follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::O));
+                        follower.pop(2);
+                    }
+                    // lanthionine, bridge with the sulfur
+                    Some((rnum, CrossLink::Lan(_, _))) => {
+                        follower.join(BondKind::Elided, rnum.clone());
+                        follower.pop(1);
+                    }
+                    // other cross-links are not permitted
+                    Some((_, other)) => {
+                        return Err(Error::InvalidCrossLink(index, aa, *other));
+                    }
+                }
             }
 
             AminoAcid::Sec => {
