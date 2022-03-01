@@ -134,3 +134,14 @@ test_peptide!(
     [Gly, Cys, Cys, Ser, Asp, Pro, Arg, Cys, Ala, Trp, Arg, Cys],
     cross_links = [CrossLink::Cystine(2, 8), CrossLink::Cystine(3, 12)]
 );
+
+// lasso cyclization
+test_peptide!(
+    test_microcin_j25,
+    57397977,
+    [
+        Gly, Gly, Ala, Gly, His, Val, Pro, Glu, Tyr, Phe, Val, Gly, Ile, Gly, Thr, Pro, Ile, Ser,
+        Phe, Tyr, Gly
+    ],
+    cyclization = Cyclization::Lasso(8)
+);

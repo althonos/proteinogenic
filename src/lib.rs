@@ -67,6 +67,12 @@ pub enum Error {
     /// ```
     DuplicateCrossLink(u16),
 
+    /// A requested cyclization is invalid.
+    ///
+    /// This issue can occur when a requested cycle cannot be created from the
+    /// amino acid residues at the given location.
+    InvalidCyclization(u16, AminoAcid, Cyclization),
+
     /// Too many cross-links were created.
     ///
     /// This can occur when a protein contains too many cross-links, which will
@@ -88,6 +94,14 @@ impl std::fmt::Display for Error {
             }
             Error::InvalidCrossLink(i, aa, _) => {
                 write!(f, "invalid cross-link for residue {} ({})", i, aa.as_code())
+            }
+            Error::InvalidCyclization(i, aa, _) => {
+                write!(
+                    f,
+                    "invalid cyclization for residue {} ({})",
+                    i,
+                    aa.as_code()
+                )
             }
         }
     }
@@ -341,6 +355,13 @@ pub enum Cyclization {
 
     /// Head-to-tail cyclization, resulting in an homodetic cyclic peptide.
     HeadToTail,
+
+    /// Head-to-sidechain cyclization, resulting in a lasso peptide.
+    ///
+    /// This cyclization process forms an isopeptidic bond between the
+    /// amine group of the N-terminal amino acid and the carboxyl group of
+    /// an Asp or Glu residue.
+    Lasso(u16),
 }
 
 impl Default for Cyclization {
@@ -405,6 +426,7 @@ impl<S> Protein<S> {
         follower: &mut F,
         index: u16,
         cross_links: &HashMap<u16, (Rnum, CrossLink)>,
+        cyclization: &Cyclization,
     ) -> Result<(), Error> {
         const CARBON_TH2: AtomKind = AtomKind::Bracket {
             symbol: BracketSymbol::Element(Element::C),
@@ -434,6 +456,18 @@ impl<S> Protein<S> {
                     return Err(Error::InvalidCrossLink(index, other, *cross_link));
                 }
             }
+        }
+
+        // only some amino-acids can cyclized
+        match cyclization {
+            Cyclization::Lasso(n) if n == &index => match aa {
+                AminoAcid::Asp => (),
+                AminoAcid::Glu => (),
+                other => {
+                    return Err(Error::InvalidCyclization(index, other, *cyclization));
+                }
+            },
+            _ => (),
         }
 
         // visit the alpha carbon and the residue
@@ -757,9 +791,16 @@ impl<S> Protein<S> {
                 // residue
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
+                match cyclization {
+                    Cyclization::Lasso(n) if n == &index => {
+                        follower.join(BondKind::Elided, Rnum::R0);
+                    }
+                    _ => {
+                        follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::O));
+                        follower.pop(1);
+                    }
+                }
                 follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
-                follower.pop(1);
-                follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::O));
                 follower.pop(3);
             }
 
@@ -770,9 +811,16 @@ impl<S> Protein<S> {
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::C));
+                match cyclization {
+                    Cyclization::Lasso(n) if n == &index => {
+                        follower.join(BondKind::Elided, Rnum::R0);
+                    }
+                    _ => {
+                        follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::O));
+                        follower.pop(1);
+                    }
+                }
                 follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
-                follower.pop(1);
-                follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::O));
                 follower.pop(4);
             }
 
@@ -837,12 +885,21 @@ where
         if let Some((index, aa)) = aa_iter.next() {
             // N-terminus: create a the N of the primary amine.
             follower.root(AtomKind::Aliphatic(Aliphatic::N));
-            if self.cyclization == Cyclization::HeadToTail {
+            if matches!(
+                self.cyclization,
+                Cyclization::HeadToTail | Cyclization::Lasso(_)
+            ) {
                 follower.join(BondKind::Elided, Rnum::R0);
             }
 
             // visit residue
-            Self::visit_residue(aa, follower, index as u16 + 1, &self.cross_links)?;
+            Self::visit_residue(
+                aa,
+                follower,
+                index as u16 + 1, // user-provided indices start at 1
+                &self.cross_links,
+                &self.cyclization,
+            )?;
 
             // add the carboxy group to the β carbon.
             follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
@@ -851,7 +908,13 @@ where
             while let Some((index, aa)) = aa_iter.next() {
                 // next amino acid: create the N atom of the carboxamide and visit residue.
                 follower.extend(BondKind::Elided, AtomKind::Aliphatic(Aliphatic::N));
-                Self::visit_residue(aa, follower, index as u16 + 1, &self.cross_links)?;
+                Self::visit_residue(
+                    aa,
+                    follower,
+                    index as u16 + 1,
+                    &self.cross_links,
+                    &self.cyclization,
+                )?;
                 // add the carboxy group to the β carbon.
                 follower.extend(BondKind::Double, AtomKind::Aliphatic(Aliphatic::O));
                 follower.pop(1);
